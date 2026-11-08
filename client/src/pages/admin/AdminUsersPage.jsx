@@ -3,7 +3,6 @@ import {
   adminUsersApi,
   adminUpdateUserApi,
   adminGrantPlanApi,
-  adminDeleteUserApi,
 } from "../../api/admin";
 import FormField from "../../components/FormField";
 import Pagination from "../../components/Pagination";
@@ -44,18 +43,6 @@ export default function AdminUsersPage() {
     };
   }, [page, filters]);
 
-  useEffect(() => {
-    if (!notice) return;
-    const timer = setTimeout(() => setNotice(""), 6000); 
-    return () => clearTimeout(timer);
-  }, [notice]);
-
-  useEffect(() => {
-    if (!error) return;
-    const timer = setTimeout(() => setError(""), 6000);
-    return () => clearTimeout(timer);
-  }, [error]);
-
   const onText = (e) =>
     setDraft((d) => ({ ...d, [e.target.name]: e.target.value }));
   const apply = (e) => {
@@ -80,25 +67,7 @@ export default function AdminUsersPage() {
     }
   };
 
-  const removeUser = (u) => {
-    const msg = `XÓA VĨNH VIỄN tài khoản ${u.email}?\n\nHồ sơ, các tin đăng và gói đăng ký của người này sẽ bị xóa. Hành động này không thể hoàn tác.`;
-    if (!window.confirm(msg)) return;
-    act(async () => {
-      await adminDeleteUserApi(u.id);
-      setData((d) => ({
-        ...d,
-        items: d.items.filter((x) => x.id !== u.id),
-        total: Math.max(0, d.total - 1),
-      }));
-      if (planForm?.id === u.id) setPlanForm(null);
-      setNotice(`Đã xóa tài khoản ${u.email}`);
-    });
-  };
-
   const changeStatus = (u, status) => {
-    // Chọn "Xóa tài khoản" trong dropdown -> chuyển sang luồng xóa
-    if (status === "delete") return removeUser(u);
-
     const note =
       status === "active"
         ? `Mở khóa cho ${u.email}?`
@@ -272,7 +241,6 @@ export default function AdminUsersPage() {
                               {USER_STATUS_LABELS[s]}
                             </option>
                           ))}
-                          <option value="delete">Xóa tài khoản</option>
                         </select>
                         <button
                           onClick={() => toggleLandlord(u)}
