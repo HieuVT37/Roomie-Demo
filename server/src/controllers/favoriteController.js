@@ -26,8 +26,13 @@ export const listFavorites = asyncHandler(async (req, res) => {
   const type = req.query.type === "pass" ? "pass" : "accommodation";
   const { Model, visible, toDto: mapDto } = KINDS[type];
 
-  const favs = await Favorite.find({ userId: req.user._id, targetType: type }).sort({ createdAt: -1 }).lean();
-  const listings = await Model.find({ _id: { $in: favs.map((f) => f.targetId) }, ...visible }).lean();
+  const favs = await Favorite.find({ userId: req.user._id, targetType: type })
+    .sort({ createdAt: -1 })
+    .lean();
+  const listings = await Model.find({
+    _id: { $in: favs.map((f) => f.targetId) },
+    ...visible,
+  }).lean();
   const byId = new Map(listings.map((l) => [String(l._id), l]));
 
   // Giữ đúng thứ tự "lưu gần nhất lên đầu"; bỏ qua bài đã bị xóa/ngưng
@@ -42,7 +47,8 @@ export const addFavorite = asyncHandler(async (req, res) => {
   const { targetType, targetId } = req.body;
   const { Model, visible } = KINDS[targetType];
 
-  if (!(await Model.exists({ _id: targetId, ...visible }))) throw httpError(404, "Không tìm thấy bài đăng");
+  if (!(await Model.exists({ _id: targetId, ...visible })))
+    throw httpError(404, "Không tìm thấy bài đăng");
 
   try {
     await Favorite.create({ userId: req.user._id, targetType, targetId });
@@ -54,8 +60,10 @@ export const addFavorite = asyncHandler(async (req, res) => {
 
 export const removeFavorite = asyncHandler(async (req, res) => {
   const { targetType, targetId } = req.params;
-  if (!TYPES.includes(targetType)) throw httpError(400, "Loại mục yêu thích không hợp lệ");
-  if (!mongoose.isValidObjectId(targetId)) throw httpError(400, "Mã không hợp lệ");
+  if (!TYPES.includes(targetType))
+    throw httpError(400, "Loại mục yêu thích không hợp lệ");
+  if (!mongoose.isValidObjectId(targetId))
+    throw httpError(400, "Mã không hợp lệ");
 
   await Favorite.deleteOne({ userId: req.user._id, targetType, targetId });
   res.json({ ok: true });

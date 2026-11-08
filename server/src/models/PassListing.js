@@ -25,16 +25,30 @@ const passSchema = new Schema(
 
     // Chỉ dùng khi type = "item"
     itemInfo: {
-      category: { type: String, enum: ["furniture", "appliance", "kitchen", "storage", "other"] },
-      condition: { type: String, enum: ["new", "like_new", "good", "fair", "old"] },
+      category: {
+        type: String,
+        enum: ["furniture", "appliance", "kitchen", "storage", "other"],
+      },
+      condition: {
+        type: String,
+        enum: ["new", "like_new", "good", "fair", "old"],
+      },
       dealType: { type: String, enum: ["sell", "give_away", "exchange"] },
     },
 
-    status: { type: String, enum: ["active", "completed", "closed"], default: "active" },
-    moderationStatus: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
+    status: {
+      type: String,
+      enum: ["active", "completed", "closed"],
+      default: "active",
+    },
+    moderationStatus: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
+    },
     moderationNote: { type: String, default: "" },
   },
-  { timestamps: true, collection: "passListings" }
+  { timestamps: true, collection: "passListings" },
 );
 
 export default mongoose.model("PassListing", passSchema);

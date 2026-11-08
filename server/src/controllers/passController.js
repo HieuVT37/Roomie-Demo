@@ -12,10 +12,18 @@ const SORTS = {
   price_asc: { price: 1 },
   price_desc: { price: -1 },
 };
-const ROOM_FIELDS = ["address", "deposit", "remainingLeaseMonths", "availableFrom", "landlordAgreed", "transferTerms"];
+const ROOM_FIELDS = [
+  "address",
+  "deposit",
+  "remainingLeaseMonths",
+  "availableFrom",
+  "landlordAgreed",
+  "transferTerms",
+];
 const ITEM_FIELDS = ["category", "condition", "dealType"];
 
-const pick = (obj = {}, keys) => Object.fromEntries(keys.map((k) => [k, obj[k]]));
+const pick = (obj = {}, keys) =>
+  Object.fromEntries(keys.map((k) => [k, obj[k]]));
 
 // Thông tin liên hệ không nằm trong DTO, chỉ trả riêng ở trang chi tiết cho người đã đăng nhập
 export const toPassDto = (l, extra = {}) => ({
@@ -37,20 +45,28 @@ export const toPassDto = (l, extra = {}) => ({
 
 async function favoriteSet(user, ids) {
   if (!user || !ids.length) return new Set();
-  const favs = await Favorite.find({ userId: user._id, targetType: "pass", targetId: { $in: ids } }).lean();
+  const favs = await Favorite.find({
+    userId: user._id,
+    targetType: "pass",
+    targetId: { $in: ids },
+  }).lean();
   return new Set(favs.map((f) => String(f.targetId)));
 }
 
-const countActive = (ownerId) => PassListing.countDocuments({ ownerId, status: "active" });
+const countActive = (ownerId) =>
+  PassListing.countDocuments({ ownerId, status: "active" });
 
 // Hạn mức số bài đang hoạt động theo gói (kiểm tra ở backend, không tin giao diện)
 async function assertQuota(user) {
-  const [limits, active] = await Promise.all([getPlanLimits(user.currentPlan), countActive(user._id)]);
+  const [limits, active] = await Promise.all([
+    getPlanLimits(user.currentPlan),
+    countActive(user._id),
+  ]);
   if (active >= limits.maxActivePassListings) {
     throw httpError(
       403,
       `Bạn đã đạt giới hạn ${limits.maxActivePassListings} bài Pass đang hoạt động của gói ${user.currentPlan}. Hãy đánh dấu hoàn tất bài cũ hoặc nâng cấp gói.`,
-      "QUOTA_EXCEEDED"
+      "QUOTA_EXCEEDED",
     );
   }
 }
@@ -77,7 +93,8 @@ function buildData(body) {
 }
 
 async function loadOwned(id, user) {
-  if (!mongoose.isValidObjectId(id)) throw httpError(404, "Không tìm thấy bài đăng");
+  if (!mongoose.isValidObjectId(id))
+    throw httpError(404, "Không tìm thấy bài đăng");
   const listing = await PassListing.findOne({ _id: id, ownerId: user._id });
   if (!listing) throw httpError(404, "Không tìm thấy bài đăng");
   return listing;
@@ -114,13 +131,22 @@ export const listPass = asyncHandler(async (req, res) => {
   const sort = { ...(SORTS[str(q.sort)] || SORTS.newest), _id: -1 };
 
   const [items, total] = await Promise.all([
-    PassListing.find(filter).sort(sort).skip((page - 1) * limit).limit(limit).lean(),
+    PassListing.find(filter)
+      .sort(sort)
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean(),
     PassListing.countDocuments(filter),
   ]);
-  const favs = await favoriteSet(req.user, items.map((i) => i._id));
+  const favs = await favoriteSet(
+    req.user,
+    items.map((i) => i._id),
+  );
 
   res.json({
-    items: items.map((l) => toPassDto(l, { isFavorite: favs.has(String(l._id)) })),
+    items: items.map((l) =>
+      toPassDto(l, { isFavorite: favs.has(String(l._id)) }),
+    ),
     total,
     page,
     pages: Math.max(1, Math.ceil(total / limit)),
@@ -129,16 +155,23 @@ export const listPass = asyncHandler(async (req, res) => {
 
 export const getPass = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  if (!mongoose.isValidObjectId(id)) throw httpError(404, "Không tìm thấy bài đăng");
+  if (!mongoose.isValidObjectId(id))
+    throw httpError(404, "Không tìm thấy bài đăng");
 
   const l = await PassListing.findById(id).lean();
-  const isOwner = Boolean(l && req.user && String(l.ownerId) === String(req.user._id));
+  const isOwner = Boolean(
+    l && req.user && String(l.ownerId) === String(req.user._id),
+  );
   const isAdmin = req.user?.role === "admin";
-  const publiclyVisible = l && l.moderationStatus === "approved" && l.status !== "closed";
-  if (!l || (!publiclyVisible && !isOwner && !isAdmin)) throw httpError(404, "Không tìm thấy bài đăng");
+  const publiclyVisible =
+    l && l.moderationStatus === "approved" && l.status !== "closed";
+  if (!l || (!publiclyVisible && !isOwner && !isAdmin))
+    throw httpError(404, "Không tìm thấy bài đăng");
 
   const [ownerProfile, favs] = await Promise.all([
-    Profile.findOne({ userId: l.ownerId }).select("displayName avatarUrl").lean(),
+    Profile.findOne({ userId: l.ownerId })
+      .select("displayName avatarUrl")
+      .lean(),
     favoriteSet(req.user, [l._id]),
   ]);
 
@@ -163,8 +196,14 @@ export const myPass = asyncHandler(async (req, res) => {
     countActive(req.user._id),
   ]);
   res.json({
-    items: items.map((l) => toPassDto(l, { moderationNote: l.moderationNote || "" })),
-    quota: { active, limit: limits.maxActivePassListings, plan: req.user.currentPlan },
+    items: items.map((l) =>
+      toPassDto(l, { moderationNote: l.moderationNote || "" }),
+    ),
+    quota: {
+      active,
+      limit: limits.maxActivePassListings,
+      plan: req.user.currentPlan,
+    },
   });
 });
 
@@ -183,7 +222,8 @@ export const createPass = asyncHandler(async (req, res) => {
 
 export const updatePass = asyncHandler(async (req, res) => {
   const listing = await loadOwned(req.params.id, req.user);
-  if (req.body.type !== listing.type) throw httpError(400, "Không thể đổi loại bài đăng");
+  if (req.body.type !== listing.type)
+    throw httpError(400, "Không thể đổi loại bài đăng");
 
   // PUT thay thế toàn bộ: trường nào không gửi lên thì bị xóa
   const data = buildData(req.body);
@@ -200,7 +240,8 @@ export const setPassStatus = asyncHandler(async (req, res) => {
   const { status } = req.body;
 
   // Mở lại bài cũ cũng phải qua kiểm tra hạn mức
-  if (status === "active" && listing.status !== "active") await assertQuota(req.user);
+  if (status === "active" && listing.status !== "active")
+    await assertQuota(req.user);
 
   listing.status = status;
   await listing.save();
