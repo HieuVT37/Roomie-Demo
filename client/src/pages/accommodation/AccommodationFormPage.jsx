@@ -7,13 +7,38 @@ import ImageUploader from "../../components/ImageUploader";
 import { SelectField, CheckField } from "../../components/FormControls";
 import { AMENITIES, ROOM_TYPE_LABELS, toOptions } from "../../utils/labels";
 
+/**
+ * Giá trị khởi tạo mặc định của biểu mẫu đăng tin phòng trọ
+ * @constant {Object}
+ */
 const emptyForm = {
-  title: "", description: "", city: "Hà Nội", district: "", ward: "", street: "",
-  price: "", deposit: "", area: "", roomType: "single", maxOccupants: "2",
-  amenities: [], electricity: "", water: "", internet: "", otherCost: "",
-  images: [], rentalTerms: "", availableFrom: "", contactPhone: "",
+  title: "",
+  description: "",
+  city: "Hà Nội",
+  district: "",
+  ward: "",
+  street: "",
+  price: "",
+  deposit: "",
+  area: "",
+  roomType: "single",
+  maxOccupants: "2",
+  amenities: [],
+  electricity: "",
+  water: "",
+  internet: "",
+  otherCost: "",
+  images: [],
+  rentalTerms: "",
+  availableFrom: "",
+  contactPhone: "",
 };
 
+/**
+ * Chuyển đổi dữ liệu bài đăng từ API thành giá trị các trường trong Form
+ * @param {Object} l - Đối tượng listing từ API
+ * @returns {Object} Đối tượng form state
+ */
 const fromListing = (l) => ({
   ...emptyForm,
   title: l.title || "",
@@ -38,12 +63,27 @@ const fromListing = (l) => ({
   contactPhone: "",
 });
 
+/**
+ * Ép kiểu dữ liệu chuỗi từ input sang số hợp lệ hoặc undefined
+ * @param {string|number|null} v
+ * @returns {number|undefined}
+ */
 const num = (v) => (v === "" || v === null ? undefined : Number(v));
 
+/**
+ * Chuẩn bị payload gửi lên API từ dữ liệu form người dùng nhập
+ * @param {Object} f - Form state hiện tại
+ * @returns {Object} Payload chuẩn gửi lên API
+ */
 const toPayload = (f) => ({
   title: f.title.trim(),
   description: f.description,
-  address: { city: f.city.trim(), district: f.district.trim(), ward: f.ward.trim(), street: f.street.trim() },
+  address: {
+    city: f.city.trim(),
+    district: f.district.trim(),
+    ward: f.ward.trim(),
+    street: f.street.trim(),
+  },
   price: Number(f.price),
   deposit: num(f.deposit),
   area: num(f.area),
@@ -65,6 +105,13 @@ const toPayload = (f) => ({
 const textareaClass =
   "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-indigo-500 dark:border-gray-600 dark:bg-gray-800";
 
+/**
+ * Khung nhóm các trường dữ liệu theo từng phần chức năng (Section)
+ * @param {Object} props
+ * @param {string} props.title - Tiêu đề nhóm
+ * @param {React.ReactNode} props.children - Các trường form con
+ * @returns {JSX.Element}
+ */
 function Section({ title, children }) {
   return (
     <section className="space-y-4 rounded-2xl border border-gray-200 p-5 dark:border-gray-700">
@@ -74,6 +121,12 @@ function Section({ title, children }) {
   );
 }
 
+/**
+ * Trang tạo mới hoặc chỉnh sửa bài đăng phòng trọ (Accommodation Form Page)
+ * Hỗ trợ tải ảnh lên, định giá, chọn tiện ích, nhập chi phí phụ và điều khoản
+ *
+ * @returns {JSX.Element}
+ */
 export default function AccommodationFormPage() {
   const { id } = useParams();
   const editing = Boolean(id);
@@ -85,6 +138,7 @@ export default function AccommodationFormPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  // Nạp dữ liệu bài đăng cũ khi ở chế độ chỉnh sửa (Edit mode)
   useEffect(() => {
     if (!editing) return;
     let active = true;
@@ -104,11 +158,15 @@ export default function AccommodationFormPage() {
     };
   }, [id, editing]);
 
+  // Cập nhật giá trị một trường form
   const set = (name, value) => setForm((f) => ({ ...f, [name]: value }));
   const onText = (e) => set(e.target.name, e.target.value);
+
+  // Thêm / bớt tiện ích khỏi danh sách chọn
   const toggleAmenity = (a) =>
     set("amenities", form.amenities.includes(a) ? form.amenities.filter((x) => x !== a) : [...form.amenities, a]);
 
+  // Xử lý gửi biểu mẫu tạo / cập nhật bài đăng
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -124,12 +182,15 @@ export default function AccommodationFormPage() {
     }
   };
 
+  // Kiểm tra quyền chủ trọ khi người dùng cố gắng truy cập trang tạo tin mới
   if (!editing && !user.isLandlord) {
     return (
       <div className="mx-auto max-w-xl space-y-3 rounded-2xl border border-gray-200 p-6 dark:border-gray-700">
         <h1 className="text-xl font-bold">Chưa thể đăng tin</h1>
         <p>Tài khoản của bạn chưa được cấp quyền đăng tin cho thuê. Quyền này do quản trị viên cấp cho chủ trọ.</p>
-        <Link to="/accommodation" className="text-indigo-600 hover:underline dark:text-indigo-400">← Quay lại tìm phòng</Link>
+        <Link to="/accommodation" className="text-indigo-600 hover:underline dark:text-indigo-400">
+          ← Quay lại tìm phòng
+        </Link>
       </div>
     );
   }
@@ -141,11 +202,22 @@ export default function AccommodationFormPage() {
 
       {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-950 dark:text-red-300">{error}</p>}
 
+      {/* Nhóm thông tin cơ bản: Tiêu đề, mô tả, giá cả, diện tích */}
       <Section title="Thông tin chính">
-        <FormField label="Tiêu đề" id="title" value={form.title} onChange={onText} required minLength={5} maxLength={150}
-          placeholder="Phòng trọ khép kín 25m², gần ĐH Ngoại thương" />
+        <FormField
+          label="Tiêu đề"
+          id="title"
+          value={form.title}
+          onChange={onText}
+          required
+          minLength={5}
+          maxLength={150}
+          placeholder="Phòng trọ khép kín 25m², gần ĐH Ngoại thương"
+        />
         <div>
-          <label htmlFor="description" className="mb-1 block text-sm font-medium">Mô tả</label>
+          <label htmlFor="description" className="mb-1 block text-sm font-medium">
+            Mô tả
+          </label>
           <textarea id="description" name="description" rows={5} value={form.description} onChange={onText} className={textareaClass} />
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -158,6 +230,7 @@ export default function AccommodationFormPage() {
         </div>
       </Section>
 
+      {/* Nhóm thông tin địa chỉ hành chính */}
       <Section title="Địa chỉ">
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField label="Thành phố" id="city" value={form.city} onChange={onText} required />
@@ -167,10 +240,12 @@ export default function AccommodationFormPage() {
         </div>
       </Section>
 
+      {/* Nhóm tải hình ảnh phòng trọ */}
       <Section title="Hình ảnh">
         <ImageUploader images={form.images} onChange={(imgs) => set("images", imgs)} />
       </Section>
 
+      {/* Nhóm danh mục tiện nghi */}
       <Section title="Tiện nghi">
         <div className="grid gap-3 sm:grid-cols-3">
           {AMENITIES.map((a) => (
@@ -179,6 +254,7 @@ export default function AccommodationFormPage() {
         </div>
       </Section>
 
+      {/* Nhóm chi phí dịch vụ và điều khoản thuê */}
       <Section title="Chi phí và điều khoản">
         <div className="grid gap-4 sm:grid-cols-3">
           <FormField label="Giá điện (VNĐ/kWh)" id="electricity" type="number" min="0" value={form.electricity} onChange={onText} />
@@ -187,15 +263,21 @@ export default function AccommodationFormPage() {
         </div>
         <FormField label="Chi phí khác" id="otherCost" value={form.otherCost} onChange={onText} placeholder="Phí vệ sinh 30k/tháng" />
         <div>
-          <label htmlFor="rentalTerms" className="mb-1 block text-sm font-medium">Điều khoản thuê</label>
+          <label htmlFor="rentalTerms" className="mb-1 block text-sm font-medium">
+            Điều khoản thuê
+          </label>
           <textarea id="rentalTerms" name="rentalTerms" rows={3} value={form.rentalTerms} onChange={onText} className={textareaClass} />
         </div>
         <FormField label="Số điện thoại / Zalo liên hệ" id="contactPhone" value={form.contactPhone} onChange={onText} placeholder="0900000000" />
       </Section>
 
+      {/* Các nút bấm lưu biểu mẫu hoặc hủy bỏ */}
       <div className="flex gap-3">
-        <button type="submit" disabled={saving}
-          className="flex-1 rounded-lg bg-indigo-600 py-3 font-medium text-white hover:bg-indigo-700 disabled:opacity-60">
+        <button
+          type="submit"
+          disabled={saving}
+          className="flex-1 rounded-lg bg-indigo-600 py-3 font-medium text-white hover:bg-indigo-700 disabled:opacity-60"
+        >
           {saving ? "Đang lưu..." : editing ? "Lưu thay đổi" : "Đăng tin"}
         </button>
         <button type="button" onClick={() => navigate(-1)} className="rounded-lg border border-gray-300 px-6 py-3 dark:border-gray-600">
