@@ -11,6 +11,13 @@ import MessageButton from "../../components/MessageButton";
 import ImageGallery from "../../components/ImageGallery";
 import { ROOM_TYPE_LABELS, LISTING_STATUS_LABELS, MODERATION_LABELS, formatVND } from "../../utils/labels";
 
+/**
+ * Hàng hiển thị cặp thông tin (Label - Value) có đường kẻ phân cách
+ * @param {Object} props
+ * @param {string} props.label - Tên trường
+ * @param {React.ReactNode} props.value - Giá trị hiển thị
+ * @returns {JSX.Element|null}
+ */
 function Row({ label, value }) {
   if (value === undefined || value === null || value === "") return null;
   return (
@@ -21,12 +28,20 @@ function Row({ label, value }) {
   );
 }
 
+/**
+ * Trang chi tiết bài đăng phòng trọ (Accommodation Detail Page)
+ * Hiển thị album ảnh phòng, thông tin chi tiết, tiện nghi, điều khoản thuê, thông tin liên hệ chủ trọ
+ * Hỗ trợ các hành động: yêu thích, nhắn tin, báo cáo vi phạm, chỉnh sửa bài đăng (nếu là chủ trọ)
+ *
+ * @returns {JSX.Element}
+ */
 export default function AccommodationDetailPage() {
   const { id } = useParams();
   const { user } = useAuth();
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
 
+  // Nạp chi tiết bài đăng phòng trọ theo ID từ URL
   useEffect(() => {
     let active = true;
     getAccommodationApi(id)
@@ -37,8 +52,10 @@ export default function AccommodationDetailPage() {
     };
   }, [id]);
 
+  // Cập nhật tiêu đề trang trên tab trình duyệt
   usePageTitle(data?.listing?.title);
 
+  // Xử lý giao diện khi có lỗi tải dữ liệu
   if (error) {
     return (
       <div className="mx-auto max-w-3xl space-y-3">
@@ -56,14 +73,15 @@ export default function AccommodationDetailPage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
+      {/* Nút quay lại trang danh sách phòng */}
       <BackButton to="/accommodation" />
 
-      {/* Ảnh */}
+      {/* Album ảnh phòng trọ kèm nút yêu thích */}
       <ImageGallery key={l.id} images={images} title={l.title} fallback="🏠">
         {!isOwner && <FavoriteButton listingId={l.id} initial={data.isFavorite} />}
       </ImageGallery>
 
-      {/* Tiêu đề */}
+      {/* Phần tiêu đề, địa chỉ và giá thuê */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">{l.title}</h1>
@@ -71,21 +89,32 @@ export default function AccommodationDetailPage() {
         </div>
         <div className="text-right">
           <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-            {formatVND(l.price)}<span className="text-sm font-normal text-gray-500">/tháng</span>
+            {formatVND(l.price)}
+            <span className="text-sm font-normal text-gray-500">/tháng</span>
           </p>
-          <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs dark:bg-gray-700">{LISTING_STATUS_LABELS[l.status]}</span>
+          <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs dark:bg-gray-700">
+            {LISTING_STATUS_LABELS[l.status]}
+          </span>
         </div>
       </div>
 
+      {/* Khung thông báo và nút chỉnh sửa bài đăng dành riêng cho chủ trọ */}
       {isOwner && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-indigo-50 px-4 py-3 text-sm dark:bg-indigo-950">
-          <span>Đây là tin của bạn · {MODERATION_LABELS[l.moderationStatus]} · {l.viewCount} lượt xem{l.moderationStatus === "pending" && " · Tin sẽ hiển thị công khai sau khi admin duyệt"}</span>
-          <Link to={`/accommodation/${l.id}/edit`} className="rounded-lg bg-indigo-600 px-3 py-1 text-white">Chỉnh sửa</Link>
+          <span>
+            Đây là tin của bạn · {MODERATION_LABELS[l.moderationStatus]} · {l.viewCount} lượt xem
+            {l.moderationStatus === "pending" && " · Tin sẽ hiển thị công khai sau khi admin duyệt"}
+          </span>
+          <Link to={`/accommodation/${l.id}/edit`} className="rounded-lg bg-indigo-600 px-3 py-1 text-white">
+            Chỉnh sửa
+          </Link>
         </div>
       )}
 
+      {/* Khung bố cục 2 cột: Cột trái nội dung chi tiết, Cột phải thông tin chủ trọ */}
       <div className="grid gap-6 md:grid-cols-[1fr_280px]">
         <div className="space-y-6">
+          {/* Mô tả phòng */}
           {l.description && (
             <section className="rounded-2xl border border-gray-200 p-5 dark:border-gray-700">
               <h2 className="mb-2 text-lg font-semibold">Mô tả</h2>
@@ -93,6 +122,7 @@ export default function AccommodationDetailPage() {
             </section>
           )}
 
+          {/* Bảng thông số chi tiết và chi phí phát sinh */}
           <section className="rounded-2xl border border-gray-200 p-5 dark:border-gray-700">
             <h2 className="mb-2 text-lg font-semibold">Thông tin chi tiết</h2>
             <Row label="Loại phòng" value={ROOM_TYPE_LABELS[l.roomType]} />
@@ -106,17 +136,21 @@ export default function AccommodationDetailPage() {
             <Row label="Chi phí khác" value={costs.other} />
           </section>
 
+          {/* Danh sách các tiện nghi của phòng */}
           {l.amenities.length > 0 && (
             <section className="rounded-2xl border border-gray-200 p-5 dark:border-gray-700">
               <h2 className="mb-3 text-lg font-semibold">Tiện nghi</h2>
               <div className="flex flex-wrap gap-2">
                 {l.amenities.map((a) => (
-                  <span key={a} className="rounded-full bg-gray-100 px-3 py-1 text-sm dark:bg-gray-800">{a}</span>
+                  <span key={a} className="rounded-full bg-gray-100 px-3 py-1 text-sm dark:bg-gray-800">
+                    {a}
+                  </span>
                 ))}
               </div>
             </section>
           )}
 
+          {/* Điều khoản quy định thuê trọ */}
           {l.rentalTerms && (
             <section className="rounded-2xl border border-gray-200 p-5 dark:border-gray-700">
               <h2 className="mb-2 text-lg font-semibold">Điều khoản thuê</h2>
@@ -125,7 +159,7 @@ export default function AccommodationDetailPage() {
           )}
         </div>
 
-        {/* Chủ trọ */}
+        {/* Khung thông tin chủ trọ và nút liên hệ */}
         <aside className="h-fit space-y-3 rounded-2xl border border-gray-200 p-5 dark:border-gray-700">
           <div className="flex items-center gap-3">
             <Avatar src={owner.avatarUrl} name={owner.displayName} />
@@ -136,7 +170,10 @@ export default function AccommodationDetailPage() {
           </div>
           {user ? (
             contactPhone ? (
-              <a href={`tel:${contactPhone}`} className="block rounded-lg bg-indigo-600 py-2 text-center font-medium text-white hover:bg-indigo-700">
+              <a
+                href={`tel:${contactPhone}`}
+                className="block rounded-lg bg-indigo-600 py-2 text-center font-medium text-white hover:bg-indigo-700"
+              >
                 📞 {contactPhone}
               </a>
             ) : (
