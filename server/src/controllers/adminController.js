@@ -11,6 +11,9 @@ import Report from "../models/Report.js";
 import Faq from "../models/Faq.js";
 import Favorite from "../models/Favorite.js";
 import StoredFile from "../models/StoredFile.js";
+import Conversation from "../models/Conversation.js";
+import Message from "../models/Message.js";
+import MatchView from "../models/MatchView.js";
 import { activatePlan, PLAN_RANK } from "../services/billingService.js";
 import { httpError, asyncHandler } from "../utils/httpError.js";
 import { str, escapeRegex } from "../utils/query.js";
@@ -325,6 +328,55 @@ export const grantPlan = asyncHandler(async (req, res) => {
 
   const sub = await activatePlan(target._id, planCode, days || 30);
   res.json({ currentPlan: planCode, expiresAt: sub.expiresAt });
+});
+
+export const deleteUser = asyncHandler(async (req, res) => {
+  const target = await loadTarget(req.params.id, req.user);
+  const uid = target._id;
+
+  const [accs, passes, conversations] = await Promise.all([
+    AccommodationListing.find({ ownerId: uid }).select("_id").lean(),
+    PassListing.find({ ownerId: uid }).select("_id").lean(),
+    Conversation.find({ participants: uid }).select("_id").lean(),
+  ]);
+  const conversationIds = conversations.map((c) => c._id);
+
+  await Promise.all([
+    Favorite.deleteMany({
+      $or: [
+        { userId: uid },
+        {
+          targetType: "accommodation",
+          targetId: { $in: accs.map((a) => a._id) },
+        },
+        { targetType: "pass", targetId: { $in: passes.map((p) => p._id) } },
+      ],
+    }),
+
+    StoredFile.deleteMany({
+      $or: [
+        { ownerId: uid },
+        ...(conversationIds.length
+          ? [{ conversationId: { $in: conversationIds } }]
+          : []),
+      ],
+    }),
+    conversationIds.length
+      ? Message.deleteMany({ conversationId: { $in: conversationIds } })
+      : null,
+    conversationIds.length
+      ? Conversation.deleteMany({ _id: { $in: conversationIds } })
+      : null,
+    Connection.deleteMany({ $or: [{ requesterId: uid }, { receiverId: uid }] }),
+    MatchView.deleteMany({ $or: [{ userId: uid }, { targetId: uid }] }),
+    AccommodationListing.deleteMany({ ownerId: uid }),
+    PassListing.deleteMany({ ownerId: uid }),
+    Profile.deleteMany({ userId: uid }),
+    UserSubscription.deleteMany({ userId: uid }),
+  ]);
+
+  await User.deleteOne({ _id: uid });
+  res.json({ ok: true });
 });
 
 /* ---------------- Duyệt tin ---------------- */

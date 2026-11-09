@@ -18,8 +18,7 @@ const toForm = (p) => ({
     maxConnectionRequestsPerMonth: p.limits.maxConnectionRequestsPerMonth ?? 0,
     maxMatchViewsPerDay: p.limits.maxMatchViewsPerDay ?? 0,
     maxActivePassListings: p.limits.maxActivePassListings ?? 0,
-    maxActiveAccommodationListings:
-      p.limits.maxActiveAccommodationListings ?? 0,
+    maxActiveAccommodationListings: p.limits.maxActiveAccommodationListings ?? 0,
     canPostAccommodation: Boolean(p.limits.canPostAccommodation),
   },
 });
@@ -40,24 +39,16 @@ export default function AdminPlansPage() {
         setPlans(res.plans);
         setForms(Object.fromEntries(res.plans.map((p) => [p.code, toForm(p)])));
       })
-      .catch(
-        (err) =>
-          active &&
-          setError(err.response?.data?.message || "Không thể kết nối máy chủ"),
-      )
+      .catch((err) => active && setError(err.response?.data?.message || "Không thể kết nối máy chủ"))
       .finally(() => active && setLoading(false));
     return () => {
       active = false;
     };
   }, []);
 
-  const setField = (code, patch) =>
-    setForms((f) => ({ ...f, [code]: { ...f[code], ...patch } }));
+  const setField = (code, patch) => setForms((f) => ({ ...f, [code]: { ...f[code], ...patch } }));
   const setLimit = (code, key, value) =>
-    setForms((f) => ({
-      ...f,
-      [code]: { ...f[code], limits: { ...f[code].limits, [key]: value } },
-    }));
+    setForms((f) => ({ ...f, [code]: { ...f[code], limits: { ...f[code].limits, [key]: value } } }));
 
   const save = async (code) => {
     const f = forms[code];
@@ -69,14 +60,10 @@ export default function AdminPlansPage() {
         description: f.description,
         isActive: f.isActive,
         limits: {
-          maxConnectionRequestsPerMonth: Number(
-            f.limits.maxConnectionRequestsPerMonth,
-          ),
+          maxConnectionRequestsPerMonth: Number(f.limits.maxConnectionRequestsPerMonth),
           maxMatchViewsPerDay: Number(f.limits.maxMatchViewsPerDay),
           maxActivePassListings: Number(f.limits.maxActivePassListings),
-          maxActiveAccommodationListings: Number(
-            f.limits.maxActiveAccommodationListings,
-          ),
+          maxActiveAccommodationListings: Number(f.limits.maxActiveAccommodationListings),
           canPostAccommodation: f.limits.canPostAccommodation,
         },
       };
@@ -95,20 +82,11 @@ export default function AdminPlansPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Gói dịch vụ</h1>
       <p className="text-sm text-gray-500 dark:text-gray-400">
-        Thay đổi giá chỉ áp dụng cho giao dịch mới. Thay đổi hạn mức áp dụng
-        ngay cho tất cả người dùng đang dùng gói đó.
+        Thay đổi giá chỉ áp dụng cho giao dịch mới. Thay đổi hạn mức áp dụng ngay cho tất cả người dùng đang dùng gói đó.
       </p>
 
-      {error && (
-        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-950 dark:text-red-300">
-          {error}
-        </p>
-      )}
-      {notice && (
-        <p className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700 dark:bg-green-950 dark:text-green-300">
-          {notice}
-        </p>
-      )}
+      {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-950 dark:text-red-300">{error}</p>}
+      {notice && <p className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700 dark:bg-green-950 dark:text-green-300">{notice}</p>}
       {loading && <p>Đang tải...</p>}
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -116,59 +94,24 @@ export default function AdminPlansPage() {
           const f = forms[p.code];
           if (!f) return null;
           return (
-            <section
-              key={p.code}
-              className="space-y-4 rounded-2xl border border-gray-200 p-5 dark:border-gray-700"
-            >
+            <section key={p.code} className="space-y-4 rounded-2xl border border-gray-200 p-5 dark:border-gray-700">
               <h2 className="text-lg font-bold">{p.name}</h2>
-              <FormField
-                label="Giá (VNĐ / 30 ngày)"
-                id={`price-${p.code}`}
-                type="number"
-                min="0"
-                step="1000"
-                value={f.price}
-                disabled={p.code === "basic"}
-                onChange={(e) => setField(p.code, { price: e.target.value })}
-              />
-              <FormField
-                label="Mô tả"
-                id={`desc-${p.code}`}
-                value={f.description}
-                onChange={(e) =>
-                  setField(p.code, { description: e.target.value })
-                }
-              />
+              <FormField label="Giá (VNĐ / 30 ngày)" id={`price-${p.code}`} type="number" min="0" step="1000"
+                value={f.price} disabled={p.code === "basic"} onChange={(e) => setField(p.code, { price: e.target.value })} />
+              <FormField label="Mô tả" id={`desc-${p.code}`} value={f.description}
+                onChange={(e) => setField(p.code, { description: e.target.value })} />
               {LIMIT_FIELDS.map(([key, label]) => (
-                <FormField
-                  key={key}
-                  label={label}
-                  id={`${key}-${p.code}`}
-                  type="number"
-                  min="0"
-                  value={f.limits[key]}
-                  onChange={(e) => setLimit(p.code, key, e.target.value)}
-                />
+                <FormField key={key} label={label} id={`${key}-${p.code}`} type="number" min="0"
+                  value={f.limits[key]} onChange={(e) => setLimit(p.code, key, e.target.value)} />
               ))}
-              <CheckField
-                id={`post-${p.code}`}
-                label="Được đăng tin cho thuê phòng"
-                checked={f.limits.canPostAccommodation}
-                onChange={(v) => setLimit(p.code, "canPostAccommodation", v)}
-              />
+              <CheckField id={`post-${p.code}`} label="Được đăng tin cho thuê phòng"
+                checked={f.limits.canPostAccommodation} onChange={(v) => setLimit(p.code, "canPostAccommodation", v)} />
               {p.code !== "basic" && (
-                <CheckField
-                  id={`active-${p.code}`}
-                  label="Đang bán (hiện ở bảng giá)"
-                  checked={f.isActive}
-                  onChange={(v) => setField(p.code, { isActive: v })}
-                />
+                <CheckField id={`active-${p.code}`} label="Đang bán (hiện ở bảng giá)" checked={f.isActive}
+                  onChange={(v) => setField(p.code, { isActive: v })} />
               )}
-              <button
-                onClick={() => save(p.code)}
-                disabled={savingCode === p.code}
-                className="w-full rounded-lg bg-indigo-600 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-60"
-              >
+              <button onClick={() => save(p.code)} disabled={savingCode === p.code}
+                className="w-full rounded-lg bg-indigo-600 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-60">
                 {savingCode === p.code ? "Đang lưu..." : "Lưu thay đổi"}
               </button>
             </section>
