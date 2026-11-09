@@ -181,3 +181,4 @@ Module Accommodation chịu trách nhiệm quản lý toàn bộ vòng đời c�
 | `403` | Forbidden | Chưa được cấp quyền chủ trọ hoặc vượt quá hạn mức bài đăng |
 | `404` | Not Found | Không tìm thấy bài đăng phòng trọ hoặc file ảnh tương ứng |
 | `500` | Internal Server Error | Lỗi máy chủ cơ sở dữ liệu hoặc xử lý hình ảnh |
+
